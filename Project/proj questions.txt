@@ -1,0 +1,213 @@
+Check these for ideas
+
+Q1. https://www.kaggle.com/dmitriy19/d/kaggle/us-baby-names/exploring-us-baby-names/discussion
+
+1.	What is the trend in the average length of baby names been from 1880 to 2000?
+
+
+def average_length_data_transform():
+    years = []
+    female_average_length = []
+    female_average_name_length = dict()
+    male_average_length = []
+    male_average_name_length = dict()
+    
+    for index, row in data.iterrows():
+        if row['Gender'] == 'F':
+            curr_year = row['Year']
+            curr_name_length = len(row['Name'])
+            if curr_year not in female_average_name_length:
+                female_average_name_length[curr_year] = [curr_name_length, 1]
+            else:
+                female_average_name_length[curr_year][0] += curr_name_length
+                female_average_name_length[curr_year][1] += 1
+        else:
+            curr_year = row['Year']
+            curr_name_length = len(row['Name'])
+            if curr_year not in male_average_name_length:
+                male_average_name_length[curr_year] = [curr_name_length, 1]
+            else:
+                male_average_name_length[curr_year][0] += curr_name_length
+                male_average_name_length[curr_year][1] += 1
+    
+    for key, value in female_average_name_length.items():
+        years.append(key)
+        female_average_length.append(float(value[0]) / value[1])
+        
+    for key, value in male_average_name_length.items():
+        years.append(key)
+        male_average_length.append(float(value[0]) / value[1])
+        
+    return (female_average_length, female_average_name_length, male_average_length, male_average_name_length)
+In [9]:
+female_average_length, female_average_name_length, male_average_length, male_average_name_length = average_length_data_transform()
+In [10]:
+years = range(1880, 2015)
+f, ax = plt.subplots(figsize=(10, 6))
+ax.set_xlim([1880, 2014])
+
+plt.plot(years, female_average_length, label='Average length of female names', color='r')
+plt.plot(years, male_average_length, label='Average length of male names', color='b')
+
+ax.set_ylabel('Length of name')
+ax.set_xlabel('Year')
+ax.set_title('Average length of names')
+legend = plt.legend(loc='best', frameon=True, borderpad=1, borderaxespad=1)
+
+*********************************
+
+https://www.kaggle.com/gandavarapu/d/kaggle/us-baby-names/impact-of-president-names-on-baby-names/comments
+
+Q2. What is the impact of President names on baby names, while the Presidents were still in office?
+
+
+
+In [1]:
+%matplotlib inline
+In [2]:
+ls ../input
+NationalNames.csv   StateNames.csv   database.sqlite
+NationalReadMe.pdf  StateReadMe.pdf  hashes.txt
+In [3]:
+cat ../input/StateNames.csv | head 
+Id,Name,Year,Gender,State,Count
+1,Mary,1910,F,AK,14
+2,Annie,1910,F,AK,12
+3,Anna,1910,F,AK,10
+4,Margaret,1910,F,AK,8
+5,Helen,1910,F,AK,7
+6,Elsie,1910,F,AK,6
+7,Lucy,1910,F,AK,6
+8,Dorothy,1910,F,AK,5
+9,Mary,1911,F,AK,12
+cat: write error: Broken pipe
+In [4]:
+import pandas as pd
+
+pres =  {'Name' : ['Barack','George','Bill','George','Ronald','Jimmy','Gerald','Richard','Lyndon','John','Dwight','Harry','Franklin','Herbert','Calvin','Warren','Woodrow'],
+         'StartYear' : [2009,2001,1993,1989,1981,1977,1974,1969,1963,1961,1953,1945,1933,1929,1923,1921,1913],
+         'EndYear' : [2015,2009,2001,1993,1989,1981,1977,1974,1969,1963,1961,1953,1945,1933,1929,1923,1921]
+}
+
+df = pd.DataFrame(pres)
+In [5]:
+import pandas as pd
+
+pres =  {'Name' : ['Mitt','Albert','Robert','Michael','Walter','Jimmy','Gerald','George','Hubert','Barry','Richard','Adlai','Thomas','Wendell','Alfred','Herbert','John','James','Charles'],
+         'StartYear' : [2010,1998,1994,1986,1982,1978,1974,1970,1966,1962,1958,1950,1942,1938,1926,1930,1922,1918,1914],
+         'EndYear' : [2014,2002,1998,1990,1986,1982,1978,1974,1970,1966,1962,1958,1950,1942,1938,1934,1926,1922,1918]
+}
+
+df_losing = pd.DataFrame(pres)
+In [6]:
+# Find out and Plot names with highest popularity when the current President with same name is in the Office :
+
+import operator
+import math
+import pandas as pd
+import csv
+%matplotlib inline
+
+def popularity(selectname):
+    #return the year in which name is most popular
+    sumname={}
+    f = open("../input/StateNames.csv")
+    allStates = csv.reader(f)
+    for line in allStates:
+        state=line[4]
+        gender=line[3]
+        year=(line[2])
+        name=line[1]
+        count=(line[5])
+        if name==selectname:
+            sumname[year]=sumname.get(year,0)+int(count)
+    for key,values in sorted(sumname.items(), key=operator.itemgetter(1),reverse=True): #sort by value:
+        return key
+    f.close()
+
+        
+Names = list(df.Name)
+print(Names)
+startYear=list(df.StartYear)
+endYear=list(df.EndYear)
+#Names = ['Woodrow','Calvin','Herbert','Franklin','Dwight','Kennedy','Lyndon','Jimmy']
+#Names = ['Elvis','Hillary','John','Kennedy']
+namesdict ={}
+specificName={}
+selectedNames =[]
+
+for i in range(0,len(Names)):
+    popyear = ''
+    popyear = popularity(Names[i])
+    if popyear is None:
+        continue
+    print("The Name " + str(Names[i]) +" is popular during the year " + str(popyear))
+    influenceStart = int(startYear[i])-1
+    influenceEnd = int(endYear[i])
+                           
+    if (int(popyear) >= influenceStart and int(popyear) <= influenceEnd): #If popularity is when the president is in office
+        selectedNames.append(Names[i])
+
+print("Names with highest popularity when the current President with same name is in the Office :") 
+print(selectedNames)
+
+f = open("../input/StateNames.csv")
+allStates = csv.reader(f)
+
+for line in allStates:
+        state=line[4]
+        gender=line[3]
+        year=(line[2])
+        name=line[1]
+        count=(line[5])
+        if name in selectedNames:
+            specificName = namesdict.get(name,{})
+            specificName[year] = specificName.get(year,0)+int(count)
+            namesdict[name] = specificName
+f.close()
+['Barack', 'George', 'Bill', 'George', 'Ronald', 'Jimmy', 'Gerald', 'Richard', 'Lyndon', 'John', 'Dwight', 'Harry', 'Franklin', 'Herbert', 'Calvin', 'Warren', 'Woodrow']
+The Name Barack is popular during the year 2009
+The Name George is popular during the year 1921
+The Name Bill is popular during the year 1947
+The Name George is popular during the year 1921
+The Name Ronald is popular during the year 1947
+The Name Jimmy is popular during the year 1947
+The Name Gerald is popular during the year 1942
+The Name Richard is popular during the year 1946
+The Name Lyndon is popular during the year 1964
+The Name John is popular during the year 1947
+The Name Dwight is popular during the year 1953
+The Name Harry is popular during the year 1918
+The Name Franklin is popular during the year 1933
+The Name Herbert is popular during the year 1928
+The Name Calvin is popular during the year 1924
+The Name Warren is popular during the year 1921
+The Name Woodrow is popular during the year 1918
+Names with highest popularity when the current President with same name is in the Office :
+['Barack', 'Lyndon', 'Dwight', 'Franklin', 'Herbert', 'Calvin', 'Warren', 'Woodrow']
+
+**********************************
+Q3.
+
+Which old names (boys and girls) have not been used since 2000's ?
+https://www.kaggle.com/dbonilla/d/kaggle/us-baby-names/exploring-us-female-names-dplyr-ggvis/notebook
+
+tmp5 <- ABN %>%
+  filter( fy < 1930, ly < 2000, CntTopYear> 500) %>%
+  arrange(desc(name_cnt)) %>%
+  slice(1:6)
+
+ndb   %>%
+  filter(Gender == 'F', Name %in% tmp5$Name)  %>%
+  select (Name, Year, Count) %>% 
+  ggvis(~Year, ~Count, stroke = ~factor(Name)) %>% 
+  layer_lines()
+
+**************************************************
+
+Q4.Which were the most popular female names in each decade from 1880 till 2014 ?what is the trend like ?
+
+https://www.kaggle.com/amanemisa/d/kaggle/us-baby-names/no-1-popular-female-names-in-each-dacade/comments
+
+
+

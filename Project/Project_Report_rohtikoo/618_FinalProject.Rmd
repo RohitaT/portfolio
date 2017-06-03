@@ -1,0 +1,365 @@
+---
+title: 'SI618 Final Project : Exploring US Baby Names'
+author: "Rohita Tikoo"
+date: "December 14, 2016"
+output: html_document
+---
+
+
+
+##1.Motivation
+
+When people choose a name, they don't realize how much they are influenced by the world around them. It is also interesting to note how many people in the world have the same name. Sometimes it seems like a certain name is more common in a certain state or a country.Each decade has witnessed trends in length of names and some names become unpopular over a period of time. My project topic is inspired by the above fact and I would explore the data sets (which contain records from the year 1879 to 2014) of US Baby names to answer the below exploratory questions.
+
+  **Exploratory Questions**
+  1. What is the trend in the average length of baby names been from 1880 to 2000?  
+  2. What is the impact of President names on baby names from 1880 to 2000, while the Presidents were still in      office?  
+  3. Which old names for girls have not been used since 2000's?  
+  4. Which were the most popular female names in each decade from 1880 till 2014 ? What is the trend               like?  
+
+
+
+##2.Data Source
+
+The data sources used for this project were taken from the publicly available US Baby Names data sets on the website of Kaggle (https://www.kaggle.com/kaggle/us-babynames). Sqlite database which contains the tables called NationalNames and StateNames.This database has the size of 130.4MB. This database contains records for the time period of 1879 to 2014. The national data on the relative frequency of given names in the population of U.S.A births where the individual has a Social Security Number. Each record has a name(character datatype) which is 2 to 15 characters, sex is M (male) or F (female) and count(numeric datatype) is the number of occurrences of the name.The fields present in the NationalNames table are Id(numeric datatype), Name, Year(numeric),Gender (character datatype) and Count.
+State-specific data on the relative frequency of given names in the population of U.S. births where
+the individual has a Social Security Number (Tabulated based on Social Security records as of
+March 8, 2015). Each record has a name which is 2 to 15 characters, sex is M (male) or F (female)
+and count is the number of occurrences of the name. The fields present in StateNames table are
+Id, Name, Year, Gender, State and Count.
+This dataset was also used by me in my SI 601 final project, where my focus was mostly on
+demonstrating my data manipulation skills using Python and its various libraries. For the SI 618
+project my focus would be more of diving into and exploring this dataset and analyzing it using R
+and its various libraries.
+
+
+##3.Research Questions and Methods
+
+**Getting Data from a SQLite Database**  
+In the data preparation step, I connected to the SQLite database containing the NationalNames table and retrieved this data using the R package DBI and RSQLite, and store it in a data frame named national_names.I omitted any rows with missing data using na.omit().
+
+```{r,echo=FALSE}
+
+library(DBI)
+library(RSQLite)
+#library(ggplot2)
+#library(dplyr)
+
+dbdriver = dbDriver("SQLite")
+connect = dbConnect(dbdriver, dbname = "database.sqlite")
+
+national_names = dbGetQuery(connect, "select * from NationalNames")
+
+national_names = na.omit(national_names)
+
+#if you get error with table name ..make sure you setwd("G:/University_Michigan_MSI/Fall2016/SI618/Project")    and then execute the code
+
+```
+
+**Q1.What is the trend in the average length of baby names been from 1880 to 2000?**  
+
+I first found the length of the names using the apply function to each column (column = margin 2) of data frame 'national_names' and stored it along with names,gender and year into a new data frame called 'length_names'.
+Then I created two subsets of 'length_names' on the basis of gender and year less than 2000 i.e 'female_name_length' for female gender and 'male_name_length' for male gender.
+I then used the functions of **'dplyr'** package of R to find the average length (using the Mean function )of names of 'female_name_length' and 'male_name_length' respectively in a given year from the years 1880 to 2000.Then I grouped the data by year and summarised the data into single row of values using the summarise function and stored it in vectors named 'female_average'and 'male_average' respectively.
+Next for plotting the trend I used the ggplot function of the **ggplot2** package.
+I plotted two separate scatter plots using data points of'female_average'and 'male_average' showing the trends in the average length of the male and female names.I also used smoothing (geom_smooth) function as it aids the eye in seeing patterns in the presence of overplotting.  
+
+
+
+
+**Q2) What is the impact of President names on baby names from 1880 to 2000, while the Presidents were still in office?**  
+
+To explore the impact of President names on baby names while the President was still in office , I created a vector called 'president_names' which would store all the names,office start dates and office end dates information for all the USA Presidents from 1877 to 2015.
+Using the functions of the **dplyr** package I filtered the 'national_names' data frame where the year was less than 2001 and gender was male because all the Presidents of the USA have been only men.This subset was stored in a vector called 'names_presi_subset1'.My next step was to find the names in 'names_presi_subset1' that would match the names present in the 'president_names' using the filter function as it would give me the exact rows which meet this logical criteria.I stored it in a vector called 'matched_name' and further grouped the rows by the name using group by function.
+Next I plotted a faceted scatter plot for year vs count values in 'matched_name' because it  strings together ggplots in different frames (facets) based on the single variable (in this case it is Name).I also used smoothing (geom_smooth) function as it aids the eye in seeing patterns in the presence of overplotting. 
+
+
+
+
+**Q3 Which old names for girls have not been used since 2000's?**  
+In this case I found it a bit challenging to explore which names were not used since the 2000's.I started with first finding the number of times a female name was used and the number of years during which that name was used then accordingly find the first year and last year of use as per our data set.For this we use min() and max() function.It was important for me to find in which year the female names in the 'national_names' were most popular i.e their peak time and sorted these names by count and year and stored in 'PeakYearFemaleName'.
+Next I performed the inner join because it joins the data retaining only the rows containing the 'Name' that is present in both sets i.e unique_girl_names and PeakYearFemaleName.Merge this data back into unique_girl_names.
+Then I found the list of old girl names by filtering the 'unique_girl_names'as per first year is greater than 1930 and last year of occurrence is less than 2000, where Count is greater than 500 and arrange() by the decreasing number of times the name was used. 
+Here I am using the package **ggvis** for plotting because it has a function interface which allows us combine components using %>% and ggvis provides an unlimited hierarchy which means that we can have as many levels as we need (and the data will only be computed once) also in ggvis() combined geoms and stats correspond to layers.The 'national_names' is filtered as per gender = Female where the name is in old_girl_names too and plot layers for  year vs count for factor(name).
+
+
+
+**Q4.Which were the most popular female names in each decade from 1880 till 2014 ? what is the trend like ?**  
+
+I used the **dplyr** and **stringr** packages to find the most popular female name in each decade by filtering the national_names as per gender,maximum count for that name for the decade starting from 1880's to 2000's.I used the str_detect() to check for the correct year during filteration.
+Then I combined the results of the above steps using union() and bind_rows() and stored it in a vector called 'popular_female_names_decades'.Using as.factor() I converted the names column of 'popular_female_names_decades' into factors and grouped the data by name.
+
+Then finally using ggplot() I plotted a faceted bar chart for the most popular names in each decade ranging from 1880 to 2014.
+
+
+
+##4.Analysis and Results
+
+**Q1.What is the trend in the average length of baby names been from 1880 to 2000?**  
+
+From the plot it is interesting to see the trend of baby names for girls appears as below:  
+1. We can see that the average length of names increased from the year 1875 to 1930 .  
+2. The average length of names stayed approximately constant during the year 1931 to 1945.  
+3. Decrease in the average length of names from 1946 to 1955.  
+4. Again we can see an increase in the average length of names from 1956 to 2000.  
+
+```{r,echo=FALSE,message=FALSE}
+#finding the length of names
+
+#https://rstudio-pubs-static.s3.amazonaws.com/84967_12ec13425c82452a8f357ba87a4f641f.html
+
+length_names=data.frame(names=national_names$Name,gender=national_names$Gender,year=national_names$Year,length=apply(national_names,2,nchar)[,2])
+
+# create subsets for gender male and female from the year 1880 to 2000 ..the data setcontains dat afrom 1880
+
+female_name_length = subset(length_names,length_names$gender== 'F'& length_names$year <= 2000)
+
+male_name_length = subset(length_names,length_names$gender == 'M'& length_names$year <= 2000)
+
+library(dplyr)  
+# use the dplyr package to find the average length of names in a given year from 1880 to 2000
+female_average = female_name_length %>% group_by(year) %>% summarise(average=mean(length))
+
+male_average = male_name_length %>% group_by(year) %>% summarise(average=mean(length))
+
+
+library(ggplot2)
+
+#use ggplot2 package to plot the graph showing us the trend of the average length of names over the time period of 1880 to 2000
+
+#Trend for Female names using scatter plot and smoothing
+ggplot(female_average, aes(x = year, y = average))+ geom_point()+ geom_smooth(se=FALSE)+ggtitle("Trend seen for the Average Length of Female Names from 1880 to 2000")
+```
+
+
+
+From the plot it is interesting to see that the trend of baby names for boys appears as below:  
+1.The average length of names kept increasing from 1880 to 1925.  
+2.The average length of names was approximately constant from 1926 to 1955.  
+3.There was a a continuous increase in the average length of names from 1956 to 2000.  
+
+
+```{r, echo=FALSE,message=FALSE}
+
+#Trend for Male names
+ggplot(male_average, aes(x = year, y = average))+ geom_point() +geom_smooth(se=FALSE)+ggtitle("Trend seen for the Average Length of Male Names from 1880 to 2000")
+
+```
+
+
+
+**Q2) What is the impact of President names on baby names from 1880 to 2000, while the Presidents were still in office?**  
+
+Let us view the list of U.S.A presidents who were in office from 1880 to 2000 : 
+
+```{r,echo=FALSE,warning=FALSE}
+
+#create a data frame that stores the USA presidents name,office start year and end year
+
+president_names = read.delim("USA_PRESIDENTS.txt",header=TRUE,sep="\t" )
+
+president_names$Name = as.character(president_names$Name)
+
+#find the popular name and year that matches the president names[]
+
+data.frame(president_names)
+
+```
+
+So the results obtained from this analysis were very interesting and are summarised as below:  
+1.The names which witnessed an **increase** in popularity while the president was in office were 'Calvin' , 'Dwight','Harry' and 'William'.  
+2.The names which witnessed a **decrease** in popularity while the president was in office were 'George','Gerald','James'and 'Richard'.  
+3.The names that witnessed **no effect** while the president was in office were 'Benjamin','Bill','Chester','Franklin','Grover','Herbert','Jimmy','John','Lydon','Ronald','Rutherford','Theodore','Warren' and 'Woodrow'.  
+
+
+```{r,warning=FALSE,echo=FALSE,message=FALSE}
+names_presi_subset1 = filter(national_names,national_names$Year<2001 & national_names$Gender=='M' )
+
+names_presi_subset1 = select(names_presi_subset1,Name,Year,Count) #have all male names from 1880 to 2000
+
+matched_name = filter(names_presi_subset1,Name== president_names$Name) 
+
+
+matched_name= matched_name %>% group_by(Name)
+
+ggplot(matched_name,aes(Year,Count,fill=Name,group=1),theme_set(theme_grey(base_size = 18))) +geom_point(stat="identity")+geom_line(stat="identity")+geom_smooth() +facet_wrap(~Name)+theme(legend.position='none')+ggtitle("Impact of USA President names on baby names from 1880 to 2000, while the Presidents were still in office")
+```
+
+
+
+**Q3 Which old names for girls have not been used since 2000's?**  
+
+From the below plot we can see that the below mentioned girl names are the old names which have not been used since 2000's:  
+1.Bettye - this name was most popular in the year 1932.  
+2.Flossie - this name was most popular in the year 1919.  
+3.Gay - this name was most popular in the year 1959.  
+4.Nannie - this name was most popular in the year 1920.  
+5.Pam - this name was most popular in the year 1959.  
+6.Pat -this name was most popular in the year 1942.  
+7.Virgie - this name was the most popular in the year 1919.  
+
+The plot captures the gradual rise and fall of these names till they were no longer used since the 2000's.
+
+```{r,echo=FALSE,warning=FALSE}
+
+#1. First find the number of times a female name was used and the number of years during which that name was used then accordingly find the first year and last year of use as per our data set.For this we use min() and max() function .
+
+
+library(dplyr)
+unique_girl_names <- national_names %>%
+  filter(Gender == 'F') %>%
+  group_by(Name) %>%
+  summarise(name_cnt = sum(Count), #number of times the name was used
+            nyears = n_distinct(Year), # number of years the name was used
+            fy = min(Year),# first year of use as per dataset
+            ly = max(Year))#last year of use as per dataset
+            
+            
+
+
+#to find the peak year by name 
+PeakYearFemaleName <- national_names %>%
+  filter(Gender == 'F') %>%
+  group_by(Name) %>%
+  filter(min_rank(desc(Count * 10000 + Year)) ==1)  %>%  #workaround to sort by Count and Year 
+  select ( Name, topYear = Year, CntTopYear = Count)
+
+
+#Find the inner join because it joins the data retaining only the rows containing the 'Name' that is present in both sets.Merge this data back into unique_girl_names 
+
+
+unique_girl_names<- unique_girl_names %>% inner_join(PeakYearFemaleName, by = "Name") 
+
+
+#2.Find the list of old girl names by filtering the 'unique_girl_names'as per first year is greater than 1930 and last year of occurrence is less than 2000, where Count is greater than 500 and arrange() by the decreasing number of times the name was used. 
+
+old_girl_names <- unique_girl_names %>%
+  filter( fy < 1930, ly < 2000, CntTopYear> 500) %>%
+  arrange(desc(name_cnt)) #%>%
+  
+
+#3.Here I am using the package ggvis for plotting because it has a function interface which allows us combine components using %>% and ggvis provides an unlimited hierarchy which means that we can have as many levels as we need (and the data will only be computed once) also in ggvis() combined geoms and stats correspond to layers.The national_names is filtered as per gender = Female where the name is in old_girl_names too and plot layers for  year vs count for factor(name).  
+
+
+library(ggvis)
+ national_names  %>%
+  filter(Gender == 'F', Name %in% old_girl_names$Name)  %>%
+  select (Name, Year, Count) %>%
+  ggvis(~Year, ~Count, stroke = ~factor(Name)) %>% 
+  layer_lines()
+
+```
+
+
+
+**Q4.Which were the most popular female names in each decade from 1880 till 2014 ? what is the trend like ?**  
+
+The most popular names and their trend in each decade from 1880 to 2014 were found to be as below:  
+1.Emily - This is the most popular name in the decade from 2000 to 2009.  
+2.Isabella - This is the most popular name in 2010 but this may not be the true reflection of the most popular name in the decade of 2010 to 2019 because the data set contains data till 2014 only.  
+3.Jennifer - This was the most popular name from 1970 to 1989 but seems like the popularity was decreasing.  
+4.Jessica - This was the most popular name from 1990 to 1999 and seems like it was not popular after this decade.  
+5.Linda - This was the most popular name for two decades from 1940 to 1959.Seems like the popularity was decreasing.  
+6.Lisa - This was the most popular name from the years 1960 to 1969 and seems like it was not popular after this decade.  
+7.Mary- This was the most popular name from 1888 to 1909 and witnessed an increase in popularity during these three decades.  
+
+It seems there are most Mary's, and then Jennifer's. Mary was very popular in 1910s,20s,30s,40s and 50s, and Jennifer was very popular in 1970s and 80s.
+
+
+```{r,echo=FALSE,warning=FALSE}
+#http://stackoverflow.com/questions/13043928/selecting-rows-where-a-column-has-a-string-like-hsa-partial-string-match
+ library(stringr)
+
+#Find the most popular female name for each decade from 1880-2014
+ 
+ 
+decade_1880_89 = national_names %>% filter(str_detect(Year, "188") & Gender == 'F')
+decade_1880_89 = decade_1880_89 %>% filter(Count ==max(decade_1880_89$Count, na.rm = TRUE))
+ 
+decade_1890_99 =  national_names %>% filter(str_detect(Year, "189") & Gender == 'F')
+decade_1890_99 = decade_1890_99 %>% filter(Count ==max(decade_1890_99$Count, na.rm = TRUE))
+
+decade_1900_09 =  national_names %>% filter(str_detect(Year, "190") & Gender == 'F')
+decade_1900_09 = decade_1900_09 %>% filter(Count ==max(decade_1900_09$Count, na.rm = TRUE))
+
+
+decade_1910_19 =  national_names %>% filter(str_detect(Year, "191") & Gender == 'F')
+decade_1910_19 = decade_1910_19 %>% filter(Count ==max(decade_1910_19$Count, na.rm = TRUE))
+
+
+decade_1920_29 =  national_names %>% filter(str_detect(Year, "192") & Gender == 'F')
+decade_1920_29 = decade_1920_29 %>% filter(Count ==max(decade_1920_29$Count, na.rm = TRUE))
+
+
+decade_1930_39 =  national_names %>% filter(str_detect(Year, "193") & Gender == 'F')
+decade_1930_39 = decade_1930_39 %>% filter(Count ==max(decade_1930_39$Count, na.rm = TRUE))
+
+decade_1940_49 =  national_names %>% filter(str_detect(Year, "194") & Gender == 'F')
+decade_1940_49 = decade_1940_49 %>% filter(Count ==max(decade_1940_49$Count, na.rm = TRUE))
+
+decade_1950_59 =  national_names %>% filter(str_detect(Year, "195") & Gender == 'F')
+decade_1950_59 = decade_1950_59 %>% filter(Count ==max(decade_1950_59$Count, na.rm = TRUE))
+
+
+decade_1960_69 =  national_names %>% filter(str_detect(Year, "196") & Gender == 'F')
+decade_1960_69 = decade_1960_69 %>% filter(Count ==max(decade_1960_69$Count, na.rm = TRUE))
+
+decade_1970_79 =  national_names %>% filter(str_detect(Year, "197") & Gender == 'F')
+decade_1970_79 = decade_1970_79 %>% filter(Count ==max(decade_1970_79$Count, na.rm = TRUE))
+
+
+decade_1980_89 =  national_names %>% filter(str_detect(Year, "198") & Gender == 'F')
+decade_1980_89 = decade_1980_89%>% filter(Count ==max(decade_1980_89$Count, na.rm = TRUE))
+
+
+decade_1990_99 =  national_names %>% filter(str_detect(Year, "199") & Gender == 'F')
+decade_1990_99 = decade_1990_99%>% filter(Count ==max(decade_1990_99$Count, na.rm = TRUE))
+
+
+decade_2000_09 =  national_names %>% filter(str_detect(Year, "200") & Gender == 'F')
+decade_2000_09 = decade_2000_09%>% filter(Count ==max(decade_2000_09$Count, na.rm = TRUE))
+
+decade_2010_19 =  national_names %>% filter(str_detect(Year, "201") & Gender == 'F')
+decade_2010_19 =  decade_2010_19  %>%  filter(Count ==max(decade_2010_19$Count, na.rm = TRUE))
+
+popular_female_names_decades = union(decade_1880_89,decade_1890_99)
+
+popular_female_names_decades=bind_rows(popular_female_names_decades,decade_1900_09)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1910_19)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1920_29)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1930_39)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1940_49)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1950_59)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1960_69)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1970_79)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1980_89)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_1990_99)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_2000_09)
+
+popular_female_names_decades= bind_rows(popular_female_names_decades,decade_2010_19)
+
+popular_female_names_decades$Name = as.factor(popular_female_names_decades$Name)
+
+popular_female_names_decades %>% group_by(Name)
+
+#Plot a faceted bar chart for the most popular names in each decade
+
+ggplot(popular_female_names_decades,aes(x=Year,y=Count,fill=Name)) +geom_bar(stat="identity")+ggtitle("Trend seen for the most popular female name in each decade from 1880 to 2014") + facet_wrap(~Name)
+
+
+#http://docs.ggplot2.org/0.9.3.1/geom_bar.html
+ 
+```
+
+
+
